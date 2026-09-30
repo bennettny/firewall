@@ -1,5 +1,4 @@
-unsolicited 192.168.64.1 8000
-unsolicited 192.168.64.1 8000
-unsolicited 192.168.64.1 8000
-unsolicited 192.168.64.1 8000
-unsolicited 192.168.64.1 8000
+dns blocked www.facebook.com
+dns blocked www.facebook.com
+dns blocked www.facebook.com
+dns blocked www.facebook.com
