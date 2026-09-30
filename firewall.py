@@ -1,4 +1,5 @@
-import subprocess, time
+import re, sqlite3, subprocess, time
+from datetime import datetime
 from netfilterqueue import NetfilterQueue
 from scapy.all import IP, IPv6, TCP, UDP, DNS, DNSQR
 
@@ -7,8 +8,19 @@ QUEUE = [
     "INPUT -j NFQUEUE --queue-num 1 --queue-bypass",
     "OUTPUT -p tcp --sport 22 -j ACCEPT",
     "INPUT -p tcp --dport 22 -j ACCEPT",
+    "OUTPUT -p tcp --sport 8080 -j ACCEPT",
+    "INPUT -p tcp --dport 8080 -j ACCEPT",
 ]
 TIMEOUT = 300
+WINDOW = re.compile(r"\d\d:\d\d-\d\d:\d\d$")
+
+db = sqlite3.connect("firewall.db")
+db.execute("create table if not exists events (ts real, kind text, detail text)")
+
+def log(kind, detail):
+    print(kind, detail)
+    db.execute("insert into events values (?,?,?)", (time.time(), kind, detail))
+    db.commit()
 
 def iptables(flag):
     for cmd in ("iptables", "ip6tables"):
@@ -18,11 +30,21 @@ def iptables(flag):
 def load(path):
     return [l.split() for l in open(path) if l.strip() and not l.startswith("#")]
 
-rules = load("rules.txt")
+def parse(l):
+    window = l.pop() if WINDOW.match(l[-1]) else None
+    return l[0], l[1], l[2] if len(l) > 2 else None, window
+
+rules = [parse(l) for l in load("rules.txt")]
 blocklist = {l[-1] for l in load("blocklist.txt")}
-names = {}
-conns = {}
+names, conns, scans = {}, {}, {}
 last_clean = time.time()
+
+def in_window(w):
+    if not w:
+        return True
+    start, end = w.split("-")
+    now = datetime.now().strftime("%H:%M")
+    return start <= now < end if start < end else now >= start or now < end
 
 def match(kind, value, ip, port):
     if kind == "all":
@@ -36,8 +58,8 @@ def match(kind, value, ip, port):
         return d == value or d.endswith("." + value)
 
 def decide(ip, port):
-    for action, kind, *value in rules:
-        if match(kind, value[0] if value else None, ip, port):
+    for action, kind, value, window in rules:
+        if in_window(window) and match(kind, value, ip, port):
             return action
     return "allow"
 
@@ -66,7 +88,7 @@ def handle(pkt):
                 if rr.type in (1, 28):
                     names[str(rr.rdata)] = name
         elif not incoming and p.haslayer(UDP) and on_blocklist(name):
-            print("dns blocked", name)
+            log("dns blocked", name)
             pkt.set_payload(bytes(nxdomain(p)))
             return pkt.accept()
 
@@ -80,11 +102,15 @@ def handle(pkt):
         reply = conns.get((proto, p.dst, dport, p.src, sport), 0) > now - TIMEOUT
         if local or ipv6_control or reply:
             return pkt.accept()
-        print("unsolicited", p.src, dport)
+        log("unsolicited", f"{p.src}:{dport}")
+        ports = scans.setdefault(p.src, set())
+        ports.add(dport)
+        if len(ports) == 10:
+            log("ALERT port scan", p.src)
         return pkt.drop()
 
     if decide(p.dst, dport) == "block":
-        print("blocked", names.get(p.dst, p.dst), dport)
+        log("blocked", f"{names.get(p.dst, p.dst)}:{dport}")
         return pkt.drop()
     conns[(proto, p.src, sport, p.dst, dport)] = now
     pkt.accept()
@@ -92,6 +118,7 @@ def handle(pkt):
     if now - last_clean > 60:
         for k in [k for k, t in conns.items() if t < now - TIMEOUT]:
             del conns[k]
+        scans.clear()
         last_clean = now
 
 iptables("-I")

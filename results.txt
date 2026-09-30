@@ -1,30 +1,3 @@
-top 20 by data, 2026-09-30
-   69642 KB    6612 pkts  ubuntu-mirror-3.ps6.canonical.com
-    4465 KB    1014 pkts  files.pythonhosted.org
-    3575 KB     867 pkts  ubuntu-mirror-2.ps6.canonical.com
-    2330 KB    1043 pkts  ubuntu-mirror-1.ps6.canonical.com
-      65 KB     238 pkts  github.com
-      26 KB      39 pkts  esm.ubuntu.com
-      20 KB      68 pkts  www.cnn.com
-      14 KB     100 pkts  192.168.64.1
-       7 KB      27 pkts  api.github.com
-       7 KB      32 pkts  185.125.190.123
-       6 KB      28 pkts  91.189.91.112
-       5 KB      34 pkts  fe80::1c91:80ff:fedc:d164
-       5 KB      26 pkts  91.189.91.113
-       5 KB      26 pkts  91.189.91.111
-       5 KB      26 pkts  185.125.190.122
-       2 KB      30 pkts  ff02::16
+top 20 by data, 2026-09-29
 
-top 20 lookups, 2026-09-30
-    4  github.com
-    2  www.reddit.com
-    2  www.cnn.com
-    2  ubuntu-mirror-3.ps6.canonical.com
-    1  ubuntu-mirror-2.ps6.canonical.com
-    1  ubuntu-mirror-1.ps6.canonical.com
-    1  security.ubuntu.com
-    1  pypi.org
-    1  files.pythonhosted.org
-    1  esm.ubuntu.com
-    1  api.github.com
+top 20 lookups, 2026-09-29
